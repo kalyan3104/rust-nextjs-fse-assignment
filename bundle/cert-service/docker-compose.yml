@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: certuser
+      POSTGRES_PASSWORD: certpass
+      POSTGRES_DB: certdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - cert_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U certuser -d certdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://certuser:certpass@db:5432/certdb
+      BIND_ADDR: 0.0.0.0:8080
+      LOG_FORMAT: pretty
+      RUST_LOG: cert_service=info,tower_http=info
+    ports:
+      - "8080:8080"
+
+  cargo-build:
+    image: rust:1.88-slim-bookworm
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    command: >
+      sh -c "apt-get update && apt-get install -y --no-install-recommends pkg-config libssl-dev curl && cargo build --release"
+
+volumes:
+  cert_pg_data:

@@ -1,0 +1,20 @@
+# Run this alongside cert-service's docker compose stack. It talks to the
+# backend over the network cert-service's compose file creates
+# (default project-name network: cert-service_default) via the nginx
+# sidecar's published HTTPS port on the host, so no shared Docker network
+# is strictly required — BACKEND_URL just points at the host.
+services:
+  inventory-ui:
+    build: .
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: https://host.docker.internal:8443
+      BACKEND_CA_CERT_PATH: /certs/ca.crt
+      # BACKEND_CLIENT_CERT_PATH: /certs/client.crt
+      # BACKEND_CLIENT_KEY_PATH: /certs/client.key
+    volumes:
+      - ../cert-service/certs:/certs:ro
+    ports:
+      - "3000:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
