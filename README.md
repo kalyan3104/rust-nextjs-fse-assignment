@@ -1,0 +1,1 @@
+# rust-nextjs-fse-assignment
