@@ -13,7 +13,7 @@ API). Built for FSE Assignment 2.
 | Click item → detail view | `src/app/inventory/[id]/page.tsx`, linked from `CertificateTable` |
 | SSR | `page.tsx` files are server components with `export const dynamic = "force-dynamic"`, fetching directly from the backend on every request |
 | Dashboard: total + expiring soon (30d) | `src/components/Dashboard.tsx`, backed by `GET /certificates/stats` |
-| TLS to the API | `src/lib/backend-agent.ts` — server-side `undici.Agent` trusting the local dev CA |
+| Transport to the API | `src/lib/backend-agent.ts` — plain HTTP by default, HTTPS with the local dev CA when configured |
 | mTLS (bonus) | Same agent, optionally presents a client cert — see `cert-service/nginx/README.md` |
 | SWR | `src/hooks/useCertificates.ts`, used by `InventoryExplorer` |
 | Pagination + filtering | `Pagination.tsx`, `FilterBar.tsx`, backend `GET /certificates?page=&subject=&issuer=&expiring_within_days=` |
@@ -49,8 +49,8 @@ Edit `.env.local` — by default it assumes `cert-service/` and `inventory-ui/`
 are sibling directories, matching how this codebase was structured:
 
 ```
-BACKEND_URL=https://localhost:8443
-BACKEND_CA_CERT_PATH=../cert-service/certs/ca.crt
+BACKEND_URL=http://localhost:8080
+# BACKEND_CA_CERT_PATH=../cert-service/certs/ca.crt
 ```
 
 Bring up the backend first (from `cert-service/`):
@@ -89,7 +89,7 @@ docker compose up --build -d
 docker compose up --build
 ```
 
-The frontend container reaches the backend via
-`https://host.docker.internal:8443` (nginx's published port) and mounts
-`../cert-service/certs` read-only to trust the CA — see
-`docker-compose.yml`.
+The frontend container reaches the backend via `http://host.docker.internal:8080`
+by default. If you have an HTTPS/nginx backend, set `BACKEND_URL` and
+`BACKEND_CA_CERT_PATH` accordingly and mount `../cert-service/certs` read-only
+to trust the CA — see `docker-compose.yml`.

@@ -20,16 +20,21 @@ export class BackendError extends Error {
 }
 
 async function backendFetch<T>(pathAndQuery: string, init?: { method?: string; body?: unknown }): Promise<T> {
-  const res = await undiciFetch(`${BACKEND_URL}${pathAndQuery}`, {
-    method: init?.method ?? "GET",
-    headers: { "content-type": "application/json" },
-    body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
-    dispatcher: getBackendAgent(),
-    // SSR pages want fresh data every render — the dashboard/list must
-    // reflect the current inventory, not a stale build-time snapshot.
-    // (This option is a no-op for undici but documents intent; caching is
-    // controlled at the Next.js fetch call sites instead.)
-  });
+  let res;
+  try {
+    res = await undiciFetch(`${BACKEND_URL}${pathAndQuery}`, {
+      method: init?.method ?? "GET",
+      headers: { "content-type": "application/json" },
+      body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
+      dispatcher: getBackendAgent(),
+      // SSR pages want fresh data every render — the dashboard/list must
+      // reflect the current inventory, not a stale build-time snapshot.
+      // (This option is a no-op for undici but documents intent; caching is
+      // controlled at the Next.js fetch call sites instead.)
+    });
+  } catch {
+    throw new BackendError(503, `cannot reach backend at ${BACKEND_URL}`);
+  }
 
   if (!res.ok) {
     let message = `backend responded with ${res.status}`;
